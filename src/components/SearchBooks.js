@@ -6,11 +6,14 @@ const SearchBooks = () => {
   const [genres, setGenres] = useState([])
   const [selectGenreId, setSelectGenreId] = useState('001004')
   const [recommendBookInfo, setRecommendBookInfo] = useState({})
+  const [errMsg, setErrMsg] = useState('')
 
   useEffect(() => getBookGenres(), [])
 
   const getBooks = async () => {
-    const firstData = await axios.get(`https://app.rakuten.co.jp/services/api/BooksBook/Search/20170404`, {
+    setRecommendBookInfo({})
+
+    const firstData = await axios.get(`https://app.rakuten.co.jp/services/api/BooksTotal/Search/20170404`, {
       params: {
         applicationId: '1097620706195684147',
         booksGenreId: selectGenreId,
@@ -18,12 +21,19 @@ const SearchBooks = () => {
       }
     })
 
-    const count = firstData.data.count
+    const count = firstData.data.count <= 30*100 ? firstData.data.count : 30*100
+    if (count === 0)
+    {
+      setErrMsg("条件に合う本が見つかりませんでした")
+      return
+    }
+    setErrMsg('')
+
     const recommendBookNum = Math.floor( Math.random() * count );
     const page = Math.ceil(recommendBookNum / 30);
     const index = recommendBookNum % 30 === 0 ? 30 : recommendBookNum % 30;
 
-    const detailData = await axios.get(`https://app.rakuten.co.jp/services/api/BooksBook/Search/20170404`, {
+    const detailData = await axios.get(`https://app.rakuten.co.jp/services/api/BooksTotal/Search/20170404`, {
       params: {
         applicationId: '1097620706195684147',
         booksGenreId: selectGenreId,
@@ -67,8 +77,22 @@ const SearchBooks = () => {
 
       <button onClick={() => getBooks()}>本日のおすすめ本を見る</button>
 
-      <p>{recommendBookInfo.title}</p>
-      <p>{recommendBookInfo.author}</p>
+      {Object.keys(recommendBookInfo).length !== 0 ? 
+        (
+          <>
+            <p>タイトル: {recommendBookInfo.title}</p>
+            <p>著者: {recommendBookInfo.author}</p>
+            <img src={recommendBookInfo.largeImageUrl} />
+            <p>{recommendBookInfo.itemCaption}</p>
+            <a href={recommendBookInfo.itemUrl} target="_blank">購入はこちらから</a>
+          </>
+        )
+        : (
+          <>
+            <p>{errMsg}</p>
+          </>
+        )
+      }
     </>
   )
 }
