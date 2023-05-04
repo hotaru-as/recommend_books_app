@@ -1,98 +1,120 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
+import word from './word.js';
 
-const SearchBooks = () => {
+const SearchBooks = (props) => {
+  const genres = props.genres
+  const setRecommendBookInfo = props.setRecommendBookInfo
+  const setResultVisibility = props.setResultVisibility
+  const setErrMsg = props.setErrMsg
+
   const [keyword, setKeyword] = useState('')
-  const [genres, setGenres] = useState([])
   const [selectGenreId, setSelectGenreId] = useState('001004')
-  const [recommendBookInfo, setRecommendBookInfo] = useState({})
-  const [errMsg, setErrMsg] = useState('')
-
-  useEffect(() => getBookGenres(), [])
 
   const getBooks = async () => {
-    setRecommendBookInfo({})
+    console.log("word", word())
+    setErrMsg('')
+    setResultVisibility(false)
 
-    const firstData = await axios.get(`https://app.rakuten.co.jp/services/api/BooksTotal/Search/20170404`, {
-      params: {
-        applicationId: '1097620706195684147',
-        booksGenreId: selectGenreId,
-        keyword: keyword
-      }
-    })
-
-    const count = firstData.data.count <= 30*100 ? firstData.data.count : 30*100
-    if (count === 0)
+    if (keyword === "")
     {
-      setErrMsg("条件に合う本が見つかりませんでした")
+      setErrMsg('キーワードを入力してください')
       return
     }
-    setErrMsg('')
 
-    const recommendBookNum = Math.floor( Math.random() * count );
-    const page = Math.ceil(recommendBookNum / 30);
-    const index = recommendBookNum % 30 === 0 ? 30 : recommendBookNum % 30;
+    const count = await getInitialInfo(keyword, selectGenreId)
+    if (count <= 0)
+    {
+      return
+    }
 
-    const detailData = await axios.get(`https://app.rakuten.co.jp/services/api/BooksTotal/Search/20170404`, {
-      params: {
-        applicationId: '1097620706195684147',
-        booksGenreId: selectGenreId,
-        keyword: keyword,
-        page: page
-      }
-    })
+    var readbooks = JSON.parse(localStorage.getItem("readBooks")) || []
+    var recommendedBooks = JSON.parse(localStorage.getItem("recommendedBooks")) || []
+    recommendedBooks = recommendedBooks.map(recommendedBook => recommendedBook.isbn)
 
-    console.log(detailData.data.Items[index])
-    const recommendBookInfo = detailData.data.Items[index].Item
+    var recommendBookInfo = await getRecommendBookInfo(count, keyword, selectGenreId)
+    while(recommendBookInfo && (readbooks.indexOf(recommendBookInfo.isbn) >= 0 || recommendedBooks.indexOf(recommendedBooks.isbn) >= 0))
+    {
+      recommendBookInfo = await getRecommendBookInfo(count, keyword, selectGenreId)
+    }
+
+    if (!recommendBookInfo)
+    {
+      return
+    }
+
     setRecommendBookInfo(recommendBookInfo)
+    setResultVisibility(true)
   }
 
-  const getBookGenres = () => {
-    axios.get(`https://app.rakuten.co.jp/services/api/BooksGenre/Search/20121128`, {
-      params: {
-        applicationId: '1097620706195684147',
-        booksGenreId: '001004',
-        formatVersion: '2'
+  const getInitialInfo = async (keyword, selectGenreId) =>
+  {
+    try{
+      const firstData = await axios.get(`https://app.rakuten.co.jp/services/api/BooksTotal/Search/20170404`, {
+        params: {
+          applicationId: '1097620706195684147',
+          booksGenreId: selectGenreId,
+          keyword: keyword
+        }
+      })
+
+      const count = firstData.data.count <= 30*100 ? firstData.data.count : 30*100
+      if (count === 0)
+      {
+        setErrMsg("条件に合う本が見つかりませんでした")
       }
-    })
-    .then(res => {
-      const current = res.data.current
-      setGenres([current, ...res.data.children])
-    })
+
+      return count
+    }
+    catch(e){
+      console.log(e.response.status)
+      setErrMsg("しばらく待ってから再度実行してください")
+      return -1
+    }
   }
 
-  const changeKeyword = (value) => {
-    setKeyword(value);
+  const getRecommendBookInfo = async (count, keyword, selectGenreId) =>
+  {
+    const recommendBookNum = Math.floor( Math.random() * count );
+    const page = Math.ceil((recommendBookNum + 1) / 30);
+    const index = recommendBookNum % 30;
+
+    try{
+      const detailData = await axios.get(`https://app.rakuten.co.jp/services/api/BooksTotal/Search/20170404`, {
+        params: {
+          applicationId: '1097620706195684147',
+          booksGenreId: selectGenreId,
+          keyword: keyword,
+          page: page
+        }
+      })
+      const recommendBookInfo = detailData.data.Items[index].Item
+      return recommendBookInfo
+    }
+    catch(e) {
+      setErrMsg("しばらく待ってから再度実行してください")
+      return null
+    }
   }
 
   return (
     <>
+      <p>おすすめしてほしい本のキーワードとジャンルを入力してください</p>
       <label htmlFor="keyword">キーワード</label>
-      <input id="keyword" type="text" onChange={evt => changeKeyword(evt.target.value)}></input>
+      <input id="keyword" type="text" onChange={evt => setKeyword(evt.target.value)}></input>
 
       <label htmlFor="genre">ジャンル</label>
       <select id="genre" onChange={evt => setSelectGenreId(evt.target.value)}>
-        {genres.map(genre => <option key={genre.booksGenreId} value={genre.booksGenreId}>{genre.booksGenreName}</option>)}
+        {genres.map(genre =>
+          <option key={genre.booksGenreId} value={genre.booksGenreId}>
+            {genre.booksGenreId === '001004'
+              ? "全てのジャンル"
+              : genre.booksGenreName}
+          </option>
+        )}
       </select>
 
       <button onClick={() => getBooks()}>本日のおすすめ本を見る</button>
-
-      {Object.keys(recommendBookInfo).length !== 0 ? 
-        (
-          <>
-            <p>タイトル: {recommendBookInfo.title}</p>
-            <p>著者: {recommendBookInfo.author}</p>
-            <img src={recommendBookInfo.largeImageUrl} />
-            <p>{recommendBookInfo.itemCaption}</p>
-            <a href={recommendBookInfo.itemUrl} target="_blank">購入はこちらから</a>
-          </>
-        )
-        : (
-          <>
-            <p>{errMsg}</p>
-          </>
-        )
-      }
     </>
   )
 }
