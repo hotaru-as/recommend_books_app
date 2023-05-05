@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import word from './word.js';
+import word from './word.txt';
 
 const SearchBooks = (props) => {
   const genres = props.genres
@@ -10,9 +10,11 @@ const SearchBooks = (props) => {
 
   const [keyword, setKeyword] = useState('')
   const [selectGenreId, setSelectGenreId] = useState('001004')
+  const [ngWord, setNgWord] = useState('')
+
+  useEffect(() => getNgWord(), [])
 
   const getBooks = async () => {
-    console.log("word", word())
     setErrMsg('')
     setResultVisibility(false)
 
@@ -21,6 +23,8 @@ const SearchBooks = (props) => {
       setErrMsg('キーワードを入力してください')
       return
     }
+
+    // console.log(ngWord.split(/\r\n|\n/))
 
     const count = await getInitialInfo(keyword, selectGenreId)
     if (count <= 0)
@@ -95,6 +99,24 @@ const SearchBooks = (props) => {
       setErrMsg("しばらく待ってから再度実行してください")
       return null
     }
+  }
+
+  const getNgWord = () => 
+  {
+    var xmlhttp = new XMLHttpRequest();
+
+    xmlhttp.onreadystatechange = function() {
+      if (xmlhttp.readyState == 4) {
+        if (xmlhttp.status == 200) {
+          var text = xmlhttp.responseText
+          setNgWord(text)
+        } else {
+          alert("status = " + xmlhttp.status);
+        } 
+      }
+    }
+    xmlhttp.open("GET", word);
+    xmlhttp.send()
   }
 
   return (
