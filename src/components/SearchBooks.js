@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import word from './word.txt';
+import './SearchBooks.css';
 
 const SearchBooks = (props) => {
   const genres = props.genres
@@ -122,19 +123,21 @@ const SearchBooks = (props) => {
   return (
     <>
       <p>おすすめしてほしい本のキーワードとジャンルを入力してください</p>
-      <label htmlFor="keyword">キーワード</label>
-      <input id="keyword" type="text" onChange={evt => setKeyword(evt.target.value)}></input>
+      <label className="input">キーワード
+        <input type="text" onChange={evt => setKeyword(evt.target.value)}></input>
+      </label>
 
-      <label htmlFor="genre">ジャンル</label>
-      <select id="genre" onChange={evt => setSelectGenreId(evt.target.value)}>
-        {genres.map(genre =>
-          <option key={genre.booksGenreId} value={genre.booksGenreId}>
-            {genre.booksGenreId === '001004'
-              ? "全てのジャンル"
-              : genre.booksGenreName}
-          </option>
-        )}
-      </select>
+      <label className="input">ジャンル
+        <select onChange={evt => setSelectGenreId(evt.target.value)}>
+          {genres.map(genre =>
+            <option key={genre.booksGenreId} value={genre.booksGenreId}>
+              {genre.booksGenreId === '001004'
+                ? "全てのジャンル"
+                : genre.booksGenreName}
+            </option>
+          )}
+        </select>
+      </label>
 
       <button onClick={() => getBooks()}>本日のおすすめ本を見る</button>
     </>

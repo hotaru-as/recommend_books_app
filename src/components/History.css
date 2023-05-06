@@ -1,0 +1,18 @@
+.detail-btn {
+    display: block;
+    text-decoration: underline;
+    color: green;
+}
+
+#thoughts-form {
+    display: block;
+}
+
+#thoughs-label {
+    display: block;
+}
+
+.thoughts {
+    padding: 10px 0;
+}
+

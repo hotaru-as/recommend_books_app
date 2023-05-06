@@ -1,0 +1,22 @@
+.header-title {
+    background-color: lightblue;
+    margin: 0;
+    text-align: center;
+    padding: 20px;
+}
+
+.contents {
+    padding: 20px 40px;
+}
+
+.book-main-info {
+    display: inline-flex;
+}
+
+.book-title-author {
+    margin: 10px;
+}
+
+body {
+    background-color: lightcyan;
+}
